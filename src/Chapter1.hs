@@ -72,7 +72,7 @@ the `.hs` extension.
 -}
 
 module Chapter1 where
-
+  
 import Data.Char
 
 {- |
@@ -181,13 +181,9 @@ Now, you can evaluate some expressions and see their results immediately.
 GHCi can do much more than evaluating expressions. It also contains some special
 commands starting with a colon. For example, to see the list of all available
 commands, type ":?" in your GHCi.
-
 ghci> :?
-
 To quit GHCi, enter the ":q" command (short for ":quit").
-
 ghci> :q
-
 -}
 
 {- |
