@@ -344,6 +344,17 @@ of a book, but you are not limited only by the book properties we described.
 Create your own book type of your dreams!
 -}
 
+import Data.Maybe (isNothing)
+data Book = MkBook
+  {
+    title :: String
+  , description :: String
+  , pages :: Int
+  , hardCover :: Bool
+  , used :: Bool
+  , code :: String
+  } deriving (Show)
+
 {- |
 =⚔️= Task 2
 
@@ -373,6 +384,40 @@ after the fight. The battle has the following possible outcomes:
    doesn't earn any money and keeps what they had before.
 
 -}
+
+data Unit = MkUnit
+  {
+    unitHealth :: Int
+  , unitAttack :: Int
+  , unitCoins :: Int
+  }
+
+isDead :: Unit -> Bool
+isDead u = unitHealth u < 1
+
+isFightFinished :: Unit -> Unit -> Bool
+isFightFinished monster knight = isDead monster || isDead knight
+
+getFightOutcome :: Unit -> Unit -> Int
+getFightOutcome monster knight
+  | isDead monster && isDead knight = unitCoins knight
+  | isDead monster = unitCoins monster + unitCoins knight
+  | otherwise = -1 -- knight defeated
+
+fight :: Unit -> Unit -> Int
+fight monster knight =  if isFightFinished monster knight then
+    getFightOutcome monster knight
+else
+    (let
+       monsterHealth = unitHealth monster - unitAttack knight
+       knightHealth
+         = if isDead monster then unitHealth knight
+           else unitHealth knight - unitAttack monster
+       result
+         = fight
+             (monster {unitHealth = monsterHealth})
+             (knight {unitHealth = knightHealth})
+     in result)
 
 {- |
 =🛡= Sum types
@@ -460,6 +505,8 @@ Create a simple enumeration for the meal types (e.g. breakfast). The one who
 comes up with the most number of names wins the challenge. Use your creativity!
 -}
 
+data Meal = Breakfast | SecondBreakfast | Brunch | Lunch | Dinner | TeaParty | CoffeeBreak
+
 {- |
 =⚔️= Task 4
 
@@ -479,6 +526,36 @@ After defining the city, implement the following functions:
    complicated task, walls can be built only if the city has a castle
    and at least 10 living __people__ inside in all houses of the city in total.
 -}
+
+newtype Castle = MkCastle { name :: String } deriving (Show)
+
+data Hall
+  = Church
+  | Library
+  deriving (Show)
+
+newtype House = MkHouse { people :: Int } deriving (Show)
+
+data City = MkCity
+  {
+    cityCastle :: Maybe Castle
+  , cityHasWall :: Bool
+  , cityHall :: Hall
+  , cityHouses :: [House]
+  } deriving (Show)
+
+buildCastle :: String -> City -> City
+buildCastle castleName city = city { cityCastle = Just (MkCastle { name = castleName }) }
+
+buildHouse :: Int -> City -> City
+buildHouse people city = city { cityHouses = (MkHouse { people = people }) : cityHouses city }
+
+buildWalls :: City -> City
+buildWalls city = 
+  if isNothing (cityCastle city) then
+    city -- don't build walls if no castle
+  else 
+    city { cityHasWall = True }
 
 {-
 =🛡= Newtypes
@@ -560,22 +637,40 @@ introducing extra newtypes.
 🕯 HINT: if you complete this task properly, you don't need to change the
     implementation of the "hitPlayer" function at all!
 -}
+
+newtype Health = MkHealth { healthValue :: Int }
+newtype Armor = MkArmor { armorValue :: Int }
+newtype Attack = MkAttack { attackValue :: Int }
+newtype Dexterity = MkDexterity { dexterityValue :: Int }
+newtype Strength = MkStrength { strengthValue :: Int }
+newtype Damage = MkDamage { damageValue :: Int }
+newtype Defense = MkDefense { defenseValue :: Int }
+
 data Player = Player
-    { playerHealth    :: Int
-    , playerArmor     :: Int
-    , playerAttack    :: Int
-    , playerDexterity :: Int
-    , playerStrength  :: Int
+    { playerHealth    :: Health
+    , playerArmor     :: Armor
+    , playerAttack    :: Attack
+    , playerDexterity :: Dexterity
+    , playerStrength  :: Strength
     }
 
-calculatePlayerDamage :: Int -> Int -> Int
-calculatePlayerDamage attack strength = attack + strength
+calculatePlayerDamage :: Attack -> Strength -> Damage
+calculatePlayerDamage attack strength = 
+  MkDamage {
+    damageValue = attackValue attack + strengthValue strength
+  }
 
-calculatePlayerDefense :: Int -> Int -> Int
-calculatePlayerDefense armor dexterity = armor * dexterity
+calculatePlayerDefense :: Armor -> Dexterity -> Defense
+calculatePlayerDefense armor dexterity = 
+  MkDefense {
+    defenseValue = armorValue armor * dexterityValue dexterity
+  }
 
-calculatePlayerHit :: Int -> Int -> Int -> Int
-calculatePlayerHit damage defense health = health + defense - damage
+calculatePlayerHit :: Damage -> Defense -> Health -> Health
+calculatePlayerHit damage defense health = 
+  MkHealth {
+    healthValue = healthValue health + defenseValue defense - damageValue damage
+  }
 
 -- The second player hits first player and the new first player is returned
 hitPlayer :: Player -> Player -> Player
@@ -753,6 +848,53 @@ parametrise data types in places where values can be of any general type.
   maybe-treasure ;)
 -}
 
+data DragonPower
+  = Fire
+  | Magic
+  | Death
+  | Ice
+  | Lightning
+  deriving (Show)
+
+data Treasure 
+  = Gold 
+  | Diamond 
+  | Topaz 
+  | Coin 
+  | Cloth 
+  | Bones
+  deriving (Show)
+
+data Dragon a = MkDragon
+  {
+    dragonPower :: a
+  }
+  deriving (Show)
+
+data TreasureChest a = MkTreasureChest
+  {
+    treasureChestContent :: a
+  }
+  deriving (Show)
+
+data DragonLair a b = MkDragonLair
+  {
+    dragonLairInhabitant :: Dragon a
+  , dragonLairTreasure :: Maybe (TreasureChest b)
+  }
+  deriving (Show)
+
+makeTreasureChest :: Maybe Treasure -> Maybe (TreasureChest Treasure)
+makeTreasureChest Nothing = Nothing
+makeTreasureChest (Just x) = Just (MkTreasureChest { treasureChestContent = x })
+
+makeDragonLair :: DragonPower -> Maybe Treasure -> DragonLair DragonPower Treasure
+makeDragonLair x y = MkDragonLair
+  {
+    dragonLairInhabitant = MkDragon { dragonPower = x }
+  , dragonLairTreasure = makeTreasureChest y
+  }
+
 {-
 =🛡= Typeclasses
 
@@ -907,9 +1049,29 @@ Implement instances of "Append" for the following types:
   ✧ *(Challenge): "Maybe" where append is appending of values inside "Just" constructors
 
 -}
+
 class Append a where
     append :: a -> a -> a
 
+newtype Gold = MkGold { goldValue :: Int } deriving (Show)
+
+instance Append Gold where
+  append :: Gold -> Gold -> Gold
+  append x y = MkGold { goldValue = goldValue x + goldValue y }
+
+instance Append [a] where
+  append :: [a] -> [a] -> [a]
+  append x y = x ++ y
+
+instance (Append a) => (Append (Maybe a)) where
+  append :: Maybe a -> Maybe a -> Maybe a
+  append Nothing (Just b) = Just b
+  append (Just a) Nothing = Just a
+  append (Just a) (Just b) = Just (append a b)
+  append Nothing Nothing = Nothing
+
+-- append (Just [1]) (Just [2])
+-- append (Just MkGold { goldValue = 1 }) (Just MkGold { goldValue = 2 }) 
 
 {-
 =🛡= Standard Typeclasses and Deriving
